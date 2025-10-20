@@ -102,16 +102,22 @@ function renderTracks(filter = "") {
   for (const t of filtered) {
     const card = document.createElement("div");
     card.className = "track-card";
+
+    // capa
     const cover = document.createElement("div");
     cover.className = "track-cover";
     cover.textContent = t.name.slice(0, 2).toUpperCase();
 
+    // metadados
     const meta = document.createElement("div");
     meta.className = "track-meta";
     meta.innerHTML = `<div class="title">${t.name}</div><div class="sub">${t.artist} • ${t.album}</div>`;
 
+    // ações
     const actions = document.createElement("div");
     actions.className = "track-actions";
+
+    // botão tocar
     const btnPlay = document.createElement("button");
     btnPlay.textContent = "▶ Tocar";
     btnPlay.onclick = () => {
@@ -119,13 +125,32 @@ function renderTracks(filter = "") {
       if (idx >= 0) startPlayByIndex(idx);
     };
 
+    // botão excluir
+    const btnDelete = document.createElement("button");
+    btnDelete.textContent = "🗑 Excluir";
+    btnDelete.onclick = async () => {
+      if (!confirm("Deseja excluir esta música?")) return;
+      try {
+        await fetch(`${API_URL}/songs/${currentEmail}/${t.filename}`, {
+          method: "DELETE",
+        });
+        await loadTracksFromServer();
+      } catch (err) {
+        console.error("Erro ao deletar música:", err);
+        alert("Falha ao excluir a música do servidor.");
+      }
+    };
+
+    // montar card
     actions.appendChild(btnPlay);
+    actions.appendChild(btnDelete);
     card.appendChild(cover);
     card.appendChild(meta);
     card.appendChild(actions);
     tracksListEl.appendChild(card);
   }
 }
+
 
 // Playback
 async function startPlayByIndex(i) {
