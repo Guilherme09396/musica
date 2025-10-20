@@ -131,7 +131,7 @@ function renderTracks(filter = "") {
     btnDelete.onclick = async () => {
       if (!confirm("Deseja excluir esta música?")) return;
       try {
-        await fetch(`${API_URL}/songs/${currentEmail}/${t.filename}`, {
+        await fetch(`${API_URL}/songs/${currentEmail}/${t.id}`, {
           method: "DELETE",
         });
         await loadTracksFromServer();
