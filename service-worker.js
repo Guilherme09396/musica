@@ -1,42 +1,53 @@
 const CACHE_NAME = 'meu-site-cache-v1';
-const urlsToCache = [
+const MUSIC_CACHE = 'musicas-cache';
+const STATIC_FILES = [
   '/',
   '/index.html',
   '/style.css',
-  '/app.js',
+  '/script.js',
   '/icons/musica.png',
-  '/songs/minha-musica.mp3'
+  '/manifest.json'
 ];
 
-// Instalar o Service Worker e salvar arquivos em cache
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
-    })
+// Instalação e cache de arquivos estáticos
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_FILES))
   );
 });
 
-// Atender requisições usando cache
+// Atender requisições
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
+  const url = new URL(event.request.url);
+
+  // Se for música (ou seja, URL de uploads ou /songs/)
+  if (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/songs/')) {
+    event.respondWith(
+      caches.open(MUSIC_CACHE).then((cache) =>
+        cache.match(event.request).then((res) => {
+          if (res) return res; // retorna do cache
+          return fetch(event.request).then((response) => {
+            cache.put(event.request, response.clone()); // salva no cache
+            return response;
+          }).catch(() => new Response('', { status: 404 }));
+        })
+      )
+    );
+  } else {
+    // Arquivos estáticos
+    event.respondWith(
+      caches.match(event.request).then((res) => res || fetch(event.request))
+    );
+  }
 });
 
-// Atualizar cache quando houver nova versão
+// Ativação: limpa caches antigos
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
+  const whitelist = [CACHE_NAME, MUSIC_CACHE];
   event.waitUntil(
-    caches.keys().then((cacheNames) =>
+    caches.keys().then((keys) =>
       Promise.all(
-        cacheNames.map((cacheName) => {
-          if (!cacheWhitelist.includes(cacheName)) {
-            return caches.delete(cacheName);
-          }
-        })
+        keys.map((k) => (whitelist.includes(k) ? null : caches.delete(k)))
       )
     )
   );

@@ -157,6 +157,10 @@ async function startPlayByIndex(i) {
   if (!tracks[i]) return;
   currentIndex = i;
   const t = tracks[i];
+
+  // Salva a música no cache antes de tocar
+  await cacheMusic(t.url);
+
   audio.src = t.url;
   audio.play();
   updatePlayerUI(t);
@@ -245,6 +249,21 @@ logoutBtn.onclick = () => {
 };
 
 window.addEventListener("load", init);
+
+async function cacheMusic(url) {
+  if (!('caches' in window)) return;
+  try {
+    const cache = await caches.open('musicas-cache');
+    const match = await cache.match(url);
+    if (!match) {
+      const response = await fetch(url);
+      cache.put(url, response.clone());
+    }
+  } catch (err) {
+    console.error('Erro ao salvar música no cache:', err);
+  }
+}
+
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
